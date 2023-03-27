@@ -13,6 +13,12 @@ print("continue...")
 for i in range(downloaded,41878):
     url = "https://faproulette.co/"+str(i)
 
+
+    downloaded += 1
+    settings["last_downloaded"] = downloaded
+    with open("Q:\Faproulette\Faproulette.co\settings.json", "w") as f:
+        json.dump(settings, f)
+	
     # content of URL
     r = requests.get(url)
 
@@ -73,9 +79,5 @@ for i in range(downloaded,41878):
 
         except:
             pass
-        
-        downloaded += 1
-        settings["last_downloaded"] = downloaded
-        with open("Q:\Faproulette\Faproulette.co\settings.json", "w") as f:
-            json.dump(settings, f)
+
         print("Downloaded: ", downloaded)
