@@ -10,7 +10,7 @@ print("You already downloaded: "+str(downloaded))
 downloaded += 1
 print("continue...")
 
-for i in range(downloaded,46496):
+for i in range(downloaded,46681):
     url = "https://faproulette.co/"+str(i)
 
 
