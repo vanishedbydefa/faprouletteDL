@@ -10,7 +10,7 @@ print("You already downloaded: "+str(downloaded))
 downloaded += 1
 print("continue...")
 
-for i in range(downloaded,46681):
+for i in range(downloaded,51371):
     url = "https://faproulette.co/"+str(i)
 
 
@@ -27,6 +27,15 @@ for i in range(downloaded,46681):
 
     # find all images in URL
     images = soup.findAll('img')
+
+    # find title
+    title = soup.find('title')
+
+    if not title:
+        title = "image" + str(i)
+    else:
+        title = title.get_text().replace(" - Fap Roulette", "")
+        title = title.replace(" ", "_")
 
     #select folder
     folder_name = "all"
@@ -64,20 +73,14 @@ for i in range(downloaded,46681):
 
         # After getting Image Source URL
         # We will try to get the content of image
-        try:
-            r = requests.get(image_link).content
-            try:
+        r = requests.get(image_link)
+        if r.status_code == 200: 
+            r = r.content
 
-                # possibility of decode
-                r = str(r, 'utf-8')
+            # After checking above condition, Image Download start
+            with open(f"{folder_name}/{title}.{image_link[-3:]}", "wb+") as f:
+                f.write(r)
 
-            except UnicodeDecodeError:
-
-                # After checking above condition, Image Download start
-                with open(f"{folder_name}/images{i}.jpg", "wb+") as f:
-                    f.write(r)
-
-        except:
-            pass
-
-        print("Downloaded: ", downloaded)
+            print("Downloaded: ", downloaded)
+        else:
+            print("Download failed")
