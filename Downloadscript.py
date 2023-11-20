@@ -13,12 +13,6 @@ print("continue...")
 
 for i in range(downloaded,51371):
     url = "https://faproulette.co/"+str(i)
-
-
-    downloaded += 1
-    settings["last_downloaded"] = downloaded
-    with open("Q:\Faproulette\Faproulette.co\settings.json", "w") as f:
-        json.dump(settings, f)
 	
     # content of URL
     r = requests.get(url)
@@ -35,8 +29,9 @@ for i in range(downloaded,51371):
     if not title:
         title = "image" + str(i)
     else:
+        
         title = title.get_text().replace(" - Fap Roulette", "")
-        title = title.replace(" ", "_")
+        title = re.sub(r'[?|<>]', '', title)
 
     #select folder
     folder_name = "all"
@@ -92,6 +87,11 @@ for i in range(downloaded,51371):
             # After checking above condition, Image Download start
             with open(f"{folder_name}/{title}.{file_extension}", "wb+") as f:
                 f.write(r)
+
+            downloaded += 1
+            settings["last_downloaded"] = downloaded
+            with open("Q:\Faproulette\Faproulette.co\settings.json", "w") as f:
+                json.dump(settings, f)
 
             print("Downloaded: ", str(int(downloaded-1)))
         else:
