@@ -2,6 +2,7 @@ from turtle import down
 from bs4 import *
 import requests
 import json
+import re
 
 with open("Q:\Faproulette\Faproulette.co\settings.json", "r") as f:
     settings = json.load(f)
@@ -77,10 +78,21 @@ for i in range(downloaded,51371):
         if r.status_code == 200: 
             r = r.content
 
+            pattern = r'\.(\w+)(\?|$)'
+            extension = re.search(pattern, image_link)
+            
+            if extension:
+                file_extension = extension.group(1)  # Extract the matched file extension
+            else:
+                file_extension = "unknown"
+                print("File extension not found in the URL.")
+
+
+
             # After checking above condition, Image Download start
-            with open(f"{folder_name}/{title}.{image_link[-3:]}", "wb+") as f:
+            with open(f"{folder_name}/{title}.{file_extension}", "wb+") as f:
                 f.write(r)
 
-            print("Downloaded: ", downloaded)
+            print("Downloaded: ", str(int(downloaded-1)))
         else:
             print("Download failed")
