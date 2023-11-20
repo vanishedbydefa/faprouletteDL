@@ -30,9 +30,8 @@ for i in range(downloaded,51371):
     if not title:
         title = "image" + str(i)
     else:
-        
         title = title.get_text().replace(" - Fap Roulette", "")
-        title = re.sub(r'[?|<>]', '', title)
+        title = re.sub(r'[?|:<>]', '', title)
 
     #select folder
     folder_name = "all"
