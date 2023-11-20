@@ -12,6 +12,7 @@ downloaded += 1
 print("continue...")
 
 for i in range(downloaded,51371):
+    error_stack = 0
     url = "https://faproulette.co/"+str(i)
 	
     # content of URL
@@ -95,4 +96,7 @@ for i in range(downloaded,51371):
 
             print("Downloaded: ", str(int(downloaded-1)))
         else:
+            error_stack += 1
             print("Download failed")
+            if error_stack == 3:
+                exit(1)
