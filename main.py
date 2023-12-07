@@ -79,16 +79,14 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue):
 def stop_program(signum, frame, url_queue, threads):
     global STOP_THREADS
     # In case ctrl + c, empty the queue to safely terminate the program
-    print("Ctrl + C detected. Emptying queue", flush=True)
+    print("Ctrl + C detected. Emptying queue")
     #with url_queue.mutex:  # Ensure thread safety for queue clearing
     STOP_THREADS = True
     while not url_queue.empty():
         url_queue.get()
         url_queue.task_done()
 
-    for thread in threads:
-        thread.join()
-        print("Thread terminated")
+    print("All threads terminated, exiting now")
     exit(0)
 
 
