@@ -57,9 +57,9 @@ def initial_checks(param_path:str, db_path:str):
     check_db_exists(db_path)
 
 
-def process_url(url:str):
+def process_url(url:str, proxie:dict):
     # content of URL
-    r = requests.get(url, headers = {'User-agent': 'faproulette-dl'})
+    r = requests.get(url, headers = {'User-agent': 'faproulette-dl'}, proxies=proxie)
     if r.status_code == 429:
         return 429, 429
     # Parse HTML Code
