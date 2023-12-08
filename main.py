@@ -15,6 +15,7 @@ STOP_THREADS = False
 threads = []
 
 db_semaphore = threading.Semaphore(1)
+threads_remove_semaphore = threading.Semaphore(1)
 threads_semaphore = None
 
 def download_image(url:list, path:str, db_path:str, force:bool):
@@ -73,6 +74,7 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue):
     global STOP_THREADS
     if not STOP_THREADS:
         try:
+            time.sleep(2)
             url = url_queue.get(timeout=1)  # Get a URL from the queue
             if not download_image(url, path, db_path, force):
                 url_queue.task_done()
@@ -86,9 +88,12 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue):
 
 # Function to gracefully stop the program on CTRL + C
 def stop_program(signum, frame, url_queue):
-    global STOP_THREADS
+    global STOP_THREADS, threads, threads_remove_semaphore
     STOP_THREADS = True
-    print("Ctrl + C detected. Emptying queue")
+    if signum != None:
+        print("Ctrl + C detected. Emptying queue")
+    else:
+        print("Internal Call for program termination")
 
     print("Clearing queue: ", end="")
     url_queue.mutex
@@ -97,10 +102,12 @@ def stop_program(signum, frame, url_queue):
         url_queue.task_done()
     print("Done")
 
-    print("Clearing threads", end="")
+    print("Clearing threads: ", end="")
+    threads_remove_semaphore.acquire()
     for thread in threads:
         thread.join()
         threads.remove(thread)
+    threads_remove_semaphore.release()
     print("Done")
 
     print(f"{get_time()} Thanks for using Faproulette-Downloader")
@@ -132,7 +139,7 @@ def main():
         url_queue.put(url)
 
     # Thread logic
-    global threads_semaphore, threads
+    global threads_semaphore, threads, threads_remove_semaphore
     threads_semaphore = threading.Semaphore(param_threads)
 
     while int(url_queue.qsize()) != 0:
@@ -145,14 +152,18 @@ def main():
         for thread in threads:
             if not thread.is_alive():
                 thread.join()
+                threads_remove_semaphore.acquire()
                 threads.remove(thread)
+                threads_remove_semaphore.release()
 
         # Register signal handler for Ctrl + C
         signal.signal(signal.SIGINT, lambda sig, frame: stop_program(sig, frame, url_queue))
 
+    threads_remove_semaphore.acquire()
     for thread in threads:
         thread.join()
         threads.remove(thread)
+    threads_remove_semaphore.release()
     
     print(f"{get_time()} All threads terminated")
     print(f"{get_time()} Thanks for using Faproulette-Downloader")
