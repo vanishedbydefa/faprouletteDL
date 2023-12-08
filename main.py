@@ -81,7 +81,9 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue, proxie):
                 if STOP_THREADS:
                     return
                 print("Downloading too fast. Shutting down now!                               ")
-                stop_program(None, None, url_queue)
+                STOP_THREADS = True
+                threads_semaphore.release()
+                return
             url_queue.task_done()
         except queue.Empty:
             pass
@@ -108,12 +110,9 @@ def stop_program(signum, frame, url_queue):
     time.sleep(2)
     threads_remove_semaphore.acquire()
     for thread in threads:
-        try:
             thread.join()
             threads.remove(thread)
             threads_semaphore.release()
-        except RuntimeError:
-            pass
     threads_remove_semaphore.release()
     print("Done")
 
@@ -140,7 +139,7 @@ def main():
         proxie = {'http': 'http://' + param_proxie + ':80'}
     else:
         proxie = None
-        
+
     # Startup checks
     print(f'{get_time()} Running startup checks to ensure correct downloading:')
     initial_checks(param_path, db_path)
@@ -177,6 +176,9 @@ def main():
 
         # Register signal handler for Ctrl + C
         signal.signal(signal.SIGINT, lambda sig, frame: stop_program(sig, frame, url_queue))
+
+        if STOP_THREADS:
+            stop_program(None, None, url_queue)
 
     threads_remove_semaphore.acquire()
     for thread in threads:
