@@ -2,7 +2,12 @@
 A multi-threding downloader for roulettes and captions of faproulette.co
 
 ## Usage
-In order to run the script, call main.py with the necessary arguments. 
+1. Clone this repository or download it as zip
+2. open a terminal and navigate to the repositorys content
+3. run the script by calling main.py with the necessary arguments.
+  * Do not set threads to high, otherwise you will get errors from faproulette.co. If the program detects that faproulette.co give bad responses (429 errors), it will let you know and terminate.
+    * In case you are downloading too fast, just wait a few minutes and start with less threads 
+
 ```
 $ python main.py -t 2 -p Q:\Faproulette\Faproulette.co\downloads -h
 
