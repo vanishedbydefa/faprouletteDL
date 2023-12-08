@@ -5,8 +5,10 @@ import requests
 import re
 import signal
 import time
+import sys
+import os
 
-from helper import get_time,initial_checks, create_urls, get_timestamp, process_url, check_path_exists
+from helper import get_time,initial_checks, create_urls, get_timestamp, process_url, check_path_exists, exe_helper
 from database import insert_or_update_entry, check_db_entry_exists, get_max_id_from_db
 
 IMAGES = 51686
@@ -117,24 +119,33 @@ def stop_program(signum, frame, url_queue):
     print("Done")
 
     print(f"{get_time()} Thanks for using Faproulette-Downloader")
-    exit(0)
+    sys.exit(0)
 
 
 def main():
     parser = argparse.ArgumentParser(prog='Faproulette-Downloader', description='Download all faproulettes on faproulette.co', epilog='https://github.com/vanishedbydefa')
-    parser.add_argument('-p', '--path', required=True, type=str, help='Path to store downloaded images')
-    parser.add_argument('-t', '--threads', choices=range(1, 11), default=4, type=int, help='Number of threads downloading images')
+    parser.add_argument('-p', '--path', default=str(os.getcwd()), type=str, help='Path to store downloaded images')
+    parser.add_argument('-t', '--threads', choices=range(1, 11), default=3, type=int, help='Number of threads downloading images')
     parser.add_argument('-f', '--force', action='store_true', help='Overwrite existing images if True')
     parser.add_argument('-b', '--beginning', action='store_true', help='Start downloading from 0')
     parser.add_argument('-x', '--proxie', type=str, default=None, help='Enter proxies IP/domain to circumvent 429 errors. Http Proxies only!')
 
     args = parser.parse_args()
-    param_path = args.path
+    param_path = args.path       
     param_threads = args.threads
     param_force = args.force
-    db_path = param_path + "\\image_data.db"
     param_beginning = args.beginning
     param_proxie = args.proxie
+
+    # Check if running as exe
+    if sys.argv[0][-4:] == ".exe":
+        if not check_path_exists(param_path+"\\main.exe", create=False):
+            print("Please start program in the folder where main.exe is stored")
+            sys.exit(0)
+        param_path, param_threads, param_force, param_beginning, param_proxie = exe_helper()
+
+    # Set remaining args, may modified in case running the exe
+    db_path = param_path + "\\image_data.db"
     if param_proxie != None: 
         proxie = {'http': 'http://' + param_proxie + ':80'}
     else:
