@@ -1,6 +1,23 @@
 import sqlite3
 import os
 
+
+def get_max_id_from_db(db_path:str):
+    # Connect to the database
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Execute the SQL query
+    cursor.execute("SELECT MAX(id) FROM img_data")
+
+    # Fetch the result
+    highest_id = cursor.fetchone()[0]
+
+    # Close the connection
+    conn.close()
+    return highest_id
+
+
 def check_db_entry_exists(db_path:str, id_value:int):
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
