@@ -5,6 +5,8 @@ A multi-threding downloader for roulettes and captions of faproulette.co
 In order to run the script, call main.py with the necessary arguments. 
 ```
 $ python main.py -t 2 -p Q:\Faproulette\Faproulette.co\downloads -h
+
+
 usage: Faproulette-Downloader [-h] -p PATH [-t {1,2,3,4,5,6,7,8,9,10}] [-f]
 
 Download all faproulettes on faproulette.co
