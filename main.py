@@ -78,6 +78,8 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue):
             url = url_queue.get(timeout=1)  # Get a URL from the queue
             if not download_image(url, path, db_path, force):
                 url_queue.task_done()
+                if STOP_THREADS:
+                    return
                 print("Downloading too fast. Shutting down now!                               ")
                 stop_program(None, None, url_queue)
             url_queue.task_done()
@@ -108,7 +110,6 @@ def stop_program(signum, frame, url_queue):
         thread.join()
         threads.remove(thread)
         threads_semaphore.release()
-
     threads_remove_semaphore.release()
     print("Done")
 
