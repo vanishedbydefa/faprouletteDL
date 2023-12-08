@@ -12,13 +12,17 @@ A multi-threding downloader for roulettes and captions of faproulette.co
 $ python main.py -t 2 -p Q:\Faproulette\Faproulette.co\downloads -h
 
 
-usage: Faproulette-Downloader [-h] -p PATH [-t {1,2,3,4,5,6,7,8,9,10}] [-f]
+usage: Faproulette-Downloader [-h] -p PATH [-t {1,2,3,4,5,6,7,8,9,10}] [-f] [-b]
 
 Download all faproulettes on faproulette.co
+
 options:
   -h, --help            show this help message and exit
   -p PATH, --path PATH  Path to store downloaded images
   -t {1,2,3,4,5,6,7,8,9,10}, --threads {1,2,3,4,5,6,7,8,9,10}
                         Number of threads downloading images
-  -f, --force           Force download images, even when they already exist
+  -f, --force           Overwrite existing images if True
+  -b, --beginning       Start downloading from 0
+
+https://github.com/vanishedbydefa
 ```
