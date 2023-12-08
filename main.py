@@ -7,7 +7,7 @@ import signal
 import time
 
 from helper import get_time,initial_checks, create_urls, get_timestamp, process_url, check_path_exists
-from database import insert_or_update_entry, check_db_entry_exists
+from database import insert_or_update_entry, check_db_entry_exists, get_max_id_from_db
 
 IMAGES = 51686
 STOP_THREADS = False
@@ -30,7 +30,7 @@ def download_image(url:list, path:str, db_path:str, force:bool):
     # Get title and image source
     title, image_link = process_url(url)
     if not title and not image_link:
-        print("No image found for this URL")
+        print(f"No image found for this URL: {url}")
         return True
     elif title == 429 and image_link == 429:
         return False
@@ -78,7 +78,7 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue):
             url = url_queue.get(timeout=1)  # Get a URL from the queue
             if not download_image(url, path, db_path, force):
                 url_queue.task_done()
-                print("Downloading to fast. Shutting down now!")
+                print("Downloading too fast. Shutting down now!")
                 stop_program(None, None, url_queue)
             url_queue.task_done()
         except queue.Empty:
@@ -88,7 +88,7 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue):
 
 # Function to gracefully stop the program on CTRL + C
 def stop_program(signum, frame, url_queue):
-    global STOP_THREADS, threads, threads_remove_semaphore
+    global STOP_THREADS, threads, threads_semaphore, threads_remove_semaphore
     STOP_THREADS = True
     if signum != None:
         print("Ctrl + C detected. Emptying queue")
@@ -107,6 +107,8 @@ def stop_program(signum, frame, url_queue):
     for thread in threads:
         thread.join()
         threads.remove(thread)
+        threads_semaphore.release()
+
     threads_remove_semaphore.release()
     print("Done")
 
@@ -119,12 +121,14 @@ def main():
     parser.add_argument('-p', '--path', required=True, type=str, help='Path to store downloaded images')
     parser.add_argument('-t', '--threads', choices=range(1, 11), default=4, type=int, help='Number of threads downloading images')
     parser.add_argument('-f', '--force', action='store_true', help='Overwrite existing images if True')
+    parser.add_argument('-b', '--beginning', action='store_true', help='Start downloading from 0')
 
     args = parser.parse_args()
     param_path = args.path
     param_threads = args.threads
     param_force = args.force
     db_path = param_path + "\\image_data.db"
+    param_beginning = args.beginning
 
     # Startup checks
     print(f'{get_time()} Running startup checks to ensure correct downloading:')
@@ -133,8 +137,12 @@ def main():
     print('\n\nExit the Program with CTRL + C - This exits safely but may needs some time to finish running threads\n\n')
 
     # Create a queue with the image URLs
+    start_id = 0
+    if not param_beginning:
+        start_id = get_max_id_from_db(db_path)
+
     url_queue = queue.Queue()
-    urls = create_urls(IMAGES)
+    urls = create_urls(url_from=start_id, url_to=IMAGES)
     for url in urls:
         url_queue.put(url)
 
@@ -143,7 +151,7 @@ def main():
     threads_semaphore = threading.Semaphore(param_threads)
 
     while int(url_queue.qsize()) != 0:
-        print(f"Remaining images: {str(url_queue.qsize())}      ", end='\r')
+        print(f"Remaining images: {str(url_queue.qsize())} get downloaded by {str(param_threads)}/{str(len(threads))} Threads      ", end='\r')
         threads_semaphore.acquire()
         thread = threading.Thread(target=image_downloader, args=(param_path, db_path, param_force, url_queue,))
         thread.start()
@@ -163,6 +171,7 @@ def main():
     for thread in threads:
         thread.join()
         threads.remove(thread)
+        threads_semaphore.release()
     threads_remove_semaphore.release()
     
     print(f"{get_time()} All threads terminated")
