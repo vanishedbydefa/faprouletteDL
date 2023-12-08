@@ -12,8 +12,12 @@ def get_time():
 def get_timestamp():
     return time.time()
 
-def create_urls(images:int):
-    return [[i,"https://faproulette.co/"+str(i)] for i in range(1, images+1)]
+def create_urls(url_from:int, url_to:int):
+    if url_from <= 10:
+        url_from = 0
+    else:
+        url_from -= 10
+    return [[i,"https://faproulette.co/"+str(i)] for i in range(url_from, url_to+1)]
 
 
 def check_path_exists(path:str, create=False):
