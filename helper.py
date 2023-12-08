@@ -59,7 +59,7 @@ def initial_checks(param_path:str, db_path:str):
 
 def process_url(url:str):
     # content of URL
-    r = requests.get(url)
+    r = requests.get(url, headers = {'User-agent': 'faproulette-dl'})
     if r.status_code == 429:
         return 429, 429
     # Parse HTML Code
