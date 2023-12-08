@@ -53,9 +53,11 @@ def initial_checks(param_path:str, db_path:str):
     check_db_exists(db_path)
 
 
-def process_url(url:list): 
+def process_url(url:str):
     # content of URL
     r = requests.get(url)
+    if r.status_code == 429:
+        return 429, 429
     # Parse HTML Code
     soup = BeautifulSoup(r.text, 'html.parser')
     # find all images in URL
@@ -96,7 +98,8 @@ def process_url(url:list):
                         image_link = image["src"]
                     # if no Source URL found
                     except:
-                        return False, False
+                        pass
 
         return title, image_link
+    print("debug 1")
     return False, False
