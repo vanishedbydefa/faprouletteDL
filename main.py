@@ -105,11 +105,15 @@ def stop_program(signum, frame, url_queue):
     print("Done")
 
     print("Clearing threads: ", end="")
+    time.sleep(2)
     threads_remove_semaphore.acquire()
     for thread in threads:
-        thread.join()
-        threads.remove(thread)
-        threads_semaphore.release()
+        try:
+            thread.join()
+            threads.remove(thread)
+            threads_semaphore.release()
+        except RuntimeError:
+            pass
     threads_remove_semaphore.release()
     print("Done")
 
