@@ -18,7 +18,7 @@ db_semaphore = threading.Semaphore(1)
 threads_remove_semaphore = threading.Semaphore(1)
 threads_semaphore = None
 
-def download_image(url:list, path:str, db_path:str, force:bool):
+def download_image(url:list, path:str, db_path:str, force:bool, proxie:dict):
     global db_semaphore
     img_id = url[0]
     url = url[1]
@@ -28,7 +28,7 @@ def download_image(url:list, path:str, db_path:str, force:bool):
         return True
     
     # Get title and image source
-    title, image_link = process_url(url)
+    title, image_link = process_url(url, proxie)
     if not title and not image_link:
         print(f"No image found for this URL: {url}")
         return True
@@ -36,7 +36,7 @@ def download_image(url:list, path:str, db_path:str, force:bool):
         return False
 
     # Download the image, save it and add entry to DB
-    r = requests.get(image_link, headers = {'User-agent': 'faproulette-dl'})
+    r = requests.get(image_link, headers = {'User-agent': 'faproulette-dl'}, proxies=proxie)
     if r.status_code == 200: 
         r = r.content
 
@@ -65,7 +65,7 @@ def download_image(url:list, path:str, db_path:str, force:bool):
         print("Download failed")
     return True
 
-def image_downloader(path:str, db_path:str, force:bool, url_queue):
+def image_downloader(path:str, db_path:str, force:bool, url_queue, proxie):
     '''
     Put a url from the queue of urls and
     download it. Return and join thread if queue
@@ -76,7 +76,7 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue):
         try:
             time.sleep(2)
             url = url_queue.get(timeout=1)  # Get a URL from the queue
-            if not download_image(url, path, db_path, force):
+            if not download_image(url, path, db_path, force, proxie):
                 url_queue.task_done()
                 if STOP_THREADS:
                     return
@@ -127,6 +127,7 @@ def main():
     parser.add_argument('-t', '--threads', choices=range(1, 11), default=4, type=int, help='Number of threads downloading images')
     parser.add_argument('-f', '--force', action='store_true', help='Overwrite existing images if True')
     parser.add_argument('-b', '--beginning', action='store_true', help='Start downloading from 0')
+    parser.add_argument('-x', '--proxie', type=str, default=None, help='Enter proxies IP/domain to circumvent 429 errors. Http Proxies only!')
 
     args = parser.parse_args()
     param_path = args.path
@@ -134,7 +135,12 @@ def main():
     param_force = args.force
     db_path = param_path + "\\image_data.db"
     param_beginning = args.beginning
-
+    param_proxie = args.proxie
+    if param_proxie != None: 
+        proxie = {'http': 'http://' + param_proxie + ':80'}
+    else:
+        proxie = None
+        
     # Startup checks
     print(f'{get_time()} Running startup checks to ensure correct downloading:')
     initial_checks(param_path, db_path)
@@ -158,7 +164,7 @@ def main():
     while int(url_queue.qsize()) != 0:
         print(f"Remaining images: {str(url_queue.qsize())} get downloaded by {str(param_threads)}/{str(len(threads))} Threads      ", end='\r')
         threads_semaphore.acquire()
-        thread = threading.Thread(target=image_downloader, args=(param_path, db_path, param_force, url_queue,))
+        thread = threading.Thread(target=image_downloader, args=(param_path, db_path, param_force, url_queue, proxie,))
         thread.start()
         threads.append(thread)
         
