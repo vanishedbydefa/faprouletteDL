@@ -78,7 +78,7 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue):
             url = url_queue.get(timeout=1)  # Get a URL from the queue
             if not download_image(url, path, db_path, force):
                 url_queue.task_done()
-                print("Downloading too fast. Shutting down now!")
+                print("Downloading too fast. Shutting down now!                               ")
                 stop_program(None, None, url_queue)
             url_queue.task_done()
         except queue.Empty:
