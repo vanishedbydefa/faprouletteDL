@@ -158,7 +158,7 @@ def main():
 
     # Startup checks
     print(f'{get_time()} Running startup checks to ensure correct downloading:')
-    initial_checks(param_path, db_path, db_path_source, exe=exe)
+    initial_checks(param_path, db_path, db_path_source, speed=param_speed, exe=exe)
     print(f'{get_time()} Start downloading with {param_threads} threads into "{param_path}"')
     print('\n\nExit the Program with CTRL + C - This exits safely but may needs some time to finish running threads\n\n')
 
