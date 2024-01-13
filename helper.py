@@ -47,7 +47,7 @@ def check_path_exists(path:str, create=False):
     return False
 
 
-def initial_checks(param_path:str, db_path:str, db_path_source:str, exe=False):
+def initial_checks(param_path:str, db_path:str, db_path_source:str, speed=False, exe=False):
     ##check specified path to folder and create if it do not exist
     if check_path_exists(param_path, create=True):
         print(f'    - Folder path at {param_path} is valid')
@@ -62,13 +62,13 @@ def initial_checks(param_path:str, db_path:str, db_path_source:str, exe=False):
     
     ##check if the db exist and create if it do not exist
     check_db_exists(db_path)
-    if not check_path_exists(db_path_source, create=False):
-        print("\nERROR You want to use speed mode but there is no source database: 'image_data_source.db'")
-        print(f"      Make sure to place 'image_data_source.db' here: {db_path_source}")
-        if exe:
-            time.sleep(60)
-        exit(1)
-
+    if speed:
+        if not check_path_exists(db_path_source, create=False):
+            print("\nERROR You want to use speed mode but there is no source database: 'image_data_source.db'")
+            print(f"      Make sure to place 'image_data_source.db' here: {db_path_source}")
+            if exe:
+                time.sleep(60)
+            exit(1)
 
 def process_url(url:str, proxie:dict):
     # content of URL
