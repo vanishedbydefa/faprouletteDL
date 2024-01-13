@@ -4,7 +4,7 @@ import re
 import requests
 from bs4 import *
 
-from database import check_db_exists
+from database import check_db_exists, get_all_ids_from_db
 
 def get_time():
     return time.strftime('[%H:%M:%S]')
@@ -12,14 +12,17 @@ def get_time():
 def get_timestamp():
     return time.time()
 
-def create_urls(url_from:int, url_to:int):
+def create_urls(url_from:int, url_to:int, db_source_path:str, speed=False):
     if url_from == None:
         url_from = 0
     elif url_from <= 10:
         url_from = 0
     else:
         url_from -= 10
-    return [[i,"https://faproulette.co/"+str(i)] for i in range(url_from, url_to+1)]
+    if speed:
+        return [[i,"https://faproulette.co/"+str(i)] for i in get_all_ids_from_db(db_source_path)]
+    else:
+        return [[i,"https://faproulette.co/"+str(i)] for i in range(url_from, url_to+1)]
 
 
 def check_path_exists(path:str, create=False):
