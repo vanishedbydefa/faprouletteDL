@@ -47,7 +47,7 @@ def check_path_exists(path:str, create=False):
     return False
 
 
-def initial_checks(param_path:str, db_path:str, db_path_source:str):
+def initial_checks(param_path:str, db_path:str, db_path_source:str, exe=False):
     ##check specified path to folder and create if it do not exist
     if check_path_exists(param_path, create=True):
         print(f'    - Folder path at {param_path} is valid')
@@ -56,6 +56,8 @@ def initial_checks(param_path:str, db_path:str, db_path_source:str):
             f"do not exist and couldn't be created. Please check \n"
             f"the correctness of the provided path: "
             f"{param_path}.")
+        if exe:
+            time.sleep(60)
         exit(1)
     
     ##check if the db exist and create if it do not exist
@@ -63,6 +65,8 @@ def initial_checks(param_path:str, db_path:str, db_path_source:str):
     if not check_path_exists(db_path_source, create=False):
         print("\nERROR You want to use speed mode but there is no source database: 'image_data_source.db'")
         print(f"      Make sure to place 'image_data_source.db' here: {db_path_source}")
+        if exe:
+            time.sleep(60)
         exit(1)
 
 
@@ -159,6 +163,18 @@ def exe_helper():
             break
 
     while True:
+        speed = input("Do you want to start downloading in speed mode? [y/n]: ")
+        if speed not in ["y", "Y", "j", "J", "yes", "Yes", "n", "N", "no", "No"]:
+            print("Type 'y' to download based on an existing db otherwise type 'n': ")
+            continue
+        elif speed in ["y", "Y", "j", "J", "yes", "Yes"]:
+            speed = True
+            break
+        elif speed in ["n", "N", "no", "No"]:
+            speed = False
+            break
+
+    while True:
         proxie = input("Do you want to use a proxie? [y/n]: ")
         if proxie not in ["y", "Y", "j", "J", "yes", "Yes", "n", "N", "no", "No"]:
             print("Type 'y' to force download or 'n' to do not: ")
@@ -169,6 +185,6 @@ def exe_helper():
         else:
             proxie = None
             break
-    return path, threads, force, beginning, proxie
+    return path, threads, force, beginning, speed, proxie
         
 
