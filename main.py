@@ -128,6 +128,7 @@ def main():
     parser.add_argument('-t', '--threads', choices=range(1, 11), default=3, type=int, help='Number of threads downloading images')
     parser.add_argument('-f', '--force', action='store_true', help='Overwrite existing images if True')
     parser.add_argument('-b', '--beginning', action='store_true', help='Start downloading from 0')
+    parser.add_argument('-s', '--speed', action='store_true', help='Use an existing Database as source for existing IDs/URLs. This will speed up downloading arround >60 percent. See README.md for more informations')
     parser.add_argument('-x', '--proxie', type=str, default=None, help='Enter proxies IP/domain to circumvent 429 errors. Http Proxies only!')
 
     args = parser.parse_args()
@@ -135,6 +136,7 @@ def main():
     param_threads = args.threads
     param_force = args.force
     param_beginning = args.beginning
+    param_speed = args.speed
     param_proxie = args.proxie
 
     # Check if running as exe
@@ -146,6 +148,7 @@ def main():
 
     # Set remaining args, may modified in case running the exe
     db_path = param_path + "\\image_data.db"
+    db_source_path = param_path + "\\image_data_source.db"
     if param_proxie != None: 
         proxie = {'http': 'http://' + param_proxie + ':80'}
     else:
@@ -163,7 +166,7 @@ def main():
         start_id = get_max_id_from_db(db_path)
 
     url_queue = queue.Queue()
-    urls = create_urls(url_from=start_id, url_to=IMAGES)
+    urls = create_urls(url_from=start_id, url_to=IMAGES, db_source_path=db_source_path, speed=param_speed)
     for url in urls:
         url_queue.put(url)
 
