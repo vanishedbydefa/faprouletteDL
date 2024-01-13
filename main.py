@@ -148,7 +148,7 @@ def main():
 
     # Set remaining args, may modified in case running the exe
     db_path = param_path + "\\image_data.db"
-    db_source_path = param_path + "\\image_data_source.db"
+    db_path_source = param_path + "\\image_data_source.db"
     if param_proxie != None: 
         proxie = {'http': 'http://' + param_proxie + ':80'}
     else:
@@ -156,7 +156,7 @@ def main():
 
     # Startup checks
     print(f'{get_time()} Running startup checks to ensure correct downloading:')
-    initial_checks(param_path, db_path)
+    initial_checks(param_path, db_path, db_path_source)
     print(f'{get_time()} Start downloading with {param_threads} threads into "{param_path}"')
     print('\n\nExit the Program with CTRL + C - This exits safely but may needs some time to finish running threads\n\n')
 
@@ -166,7 +166,7 @@ def main():
         start_id = get_max_id_from_db(db_path)
 
     url_queue = queue.Queue()
-    urls = create_urls(url_from=start_id, url_to=IMAGES, db_source_path=db_source_path, speed=param_speed)
+    urls = create_urls(url_from=start_id, url_to=IMAGES, db_source_path=db_path_source, speed=param_speed)
     for url in urls:
         url_queue.put(url)
 
