@@ -1,19 +1,24 @@
 import sqlite3
 import os
 
+def get_all_ids_from_db(db_path:str):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    cursor.execute(f"SELECT * FROM img_data;")
+    rows = cursor.fetchall()
+    conn.close()
+    ids = [i[0] for i in rows]
+    return ids
+
 
 def get_max_id_from_db(db_path:str):
-    # Connect to the database
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # Execute the SQL query
     cursor.execute("SELECT MAX(id) FROM img_data")
 
-    # Fetch the result
     highest_id = cursor.fetchone()[0]
 
-    # Close the connection
     conn.close()
     return highest_id
 
