@@ -140,11 +140,13 @@ def main():
     param_proxie = args.proxie
 
     # Check if running as exe
+    exe = False
     if sys.argv[0][-4:] == ".exe":
+        exe = True
         if not check_path_exists(param_path+"\\main.exe", create=False):
             print("Please start program in the folder where main.exe is stored")
-            sys.exit(0)
-        param_path, param_threads, param_force, param_beginning, param_proxie = exe_helper()
+            return
+        param_path, param_threads, param_force, param_beginning, param_speed, param_proxie = exe_helper()
 
     # Set remaining args, may modified in case running the exe
     db_path = param_path + "\\image_data.db"
@@ -156,7 +158,7 @@ def main():
 
     # Startup checks
     print(f'{get_time()} Running startup checks to ensure correct downloading:')
-    initial_checks(param_path, db_path, db_path_source)
+    initial_checks(param_path, db_path, db_path_source, exe=exe)
     print(f'{get_time()} Start downloading with {param_threads} threads into "{param_path}"')
     print('\n\nExit the Program with CTRL + C - This exits safely but may needs some time to finish running threads\n\n')
 
