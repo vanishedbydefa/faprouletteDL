@@ -16,11 +16,24 @@ def get_max_id_from_db(db_path:str):
     cursor = conn.cursor()
 
     cursor.execute("SELECT MAX(id) FROM img_data")
-
-    highest_id = cursor.fetchone()[0]
-
+    highest_id_downloaded = cursor.fetchone()[0]
+    cursor.execute("SELECT MAX(seq) FROM sqlite_sequence")
+    highest_id_general = cursor.fetchone()[0]
     conn.close()
-    return highest_id
+
+    if highest_id_downloaded == None and highest_id_general == None:
+        return None
+    elif highest_id_downloaded == None or highest_id_general == None:
+        print("ERROR: It seems like one table in the database is missing.")
+        print("This should not occure from normal usage of 'faproulette-downloader'.")
+        print("The program itself will not fix this issue. Think about deleting your DB and start downloading from zero again")
+        print("You can also download an existing DB from github and use the downloader in speed mode.")
+    elif highest_id_downloaded < highest_id_general:
+        print(f"highest ID: {highest_id_general}")
+        return highest_id_general
+    else:
+        print(f"highest ID: {highest_id_downloaded}")
+        return highest_id_downloaded
 
 
 def check_db_entry_exists(db_path:str, id_value:int):
