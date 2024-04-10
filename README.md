@@ -1,4 +1,4 @@
-# faproulette-downloader
+# faprouletteDL
 A multi-threding downloader for roulettes and captions of faproulette.co
 
 ## Usage
