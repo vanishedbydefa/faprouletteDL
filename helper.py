@@ -62,9 +62,8 @@ def initial_checks(param_path:str, db_path:str, db_path_source:str, speed=False,
     if check_path_exists(param_path, create=True):
         logger.info(f'    * Folder path {param_path} is valid')
     else:
-        logger.error(f"\nError:\nThe folder where to store downloaded images ",
-            f"do not exist and couldn't be created. Please check \n",
-            f"the correctness of the provided path: ",
+        logger.error(f"\nError:\nThe folder where to store downloaded images do not exist and couldn't be created.\n"
+            f"Please check the correctness of the provided path: "
             f"{param_path}.")
         if exe:
             os.system("pause")
@@ -74,8 +73,9 @@ def initial_checks(param_path:str, db_path:str, db_path_source:str, speed=False,
     check_db_exists(db_path)
     if speed:
         if not check_path_exists(db_path_source, create=False):
-            logger.error("\nERROR You want to use speed mode but there is no source database: 'image_data_source.db'\n",
-                        f"      Make sure to place 'image_data_source.db' here: {db_path_source}")
+            logger.error(f"ERROR: You want to use speed mode but there is no source database: 'image_data_source.db'\n"
+                        f"Make sure to place 'image_data_source.db' here: {db_path_source}")
+
             if exe:
                 os.system("pause")
             exit(1)
@@ -199,5 +199,3 @@ def exe_helper():
             proxie = None
             break
     return path, threads, force, beginning, speed, proxie
-        
-
