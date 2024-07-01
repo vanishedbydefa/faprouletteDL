@@ -146,7 +146,7 @@ def exe_helper():
             if threads <= 0 or threads >10:
                 logging.error("Invalid input! Please enter a number between 1 and 10")
                 continue
-            logger.info("Threads set to: ", threads)
+            logger.info(f"Threads set to: {threads}")
             break
         except ValueError:
             logger.error("Invalid input! Please enter a number between 1 and 10")
