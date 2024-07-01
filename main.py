@@ -1,17 +1,20 @@
+from pathlib import Path
 import argparse
 import threading
 import queue
 import requests
-import re
+import logging
 import signal
 import time
 import sys
 import os
+import re
 
-from helper import get_time,initial_checks, create_urls, get_timestamp, process_url, check_path_exists, exe_helper
+from logger import logger
+from helper import initial_checks, create_urls, get_timestamp, process_url, check_path_exists, exe_helper, sanitize_filename
 from database import insert_or_update_entry, check_db_entry_exists, get_max_id_from_db
 
-IMAGES = 51686
+IMAGES = 55995
 STOP_THREADS = False
 
 threads = []
@@ -19,6 +22,7 @@ threads = []
 db_semaphore = threading.Semaphore(1)
 threads_remove_semaphore = threading.Semaphore(1)
 threads_semaphore = None
+
 
 def download_image(url:list, path:str, db_path:str, force:bool, proxie:dict):
     global db_semaphore
@@ -32,10 +36,13 @@ def download_image(url:list, path:str, db_path:str, force:bool, proxie:dict):
     # Get title and image source
     title, image_link = process_url(url, proxie)
     if not title and not image_link:
-        print(f"No image found for this URL: {url}")
+        logger.warning(f"No image found for this URL: {url}")
         return True
     elif title == 429 and image_link == 429:
         return False
+    
+    # Sanitize the filename
+    title = sanitize_filename(title)
 
     # Download the image, save it and add entry to DB
     r = requests.get(image_link, headers = {'User-agent': 'faproulette-dl'}, proxies=proxie)
@@ -49,7 +56,7 @@ def download_image(url:list, path:str, db_path:str, force:bool, proxie:dict):
             file_extension = extension.group(1)  # Extract the matched file extension
         else:
             file_extension = "unknown"
-            print("File extension not found in the URL.")
+            logger.error("File extension not found in the URL.")
 
         # Check if image with this name already exist
         if check_path_exists(path + "/" + title + "." + file_extension):
@@ -64,7 +71,7 @@ def download_image(url:list, path:str, db_path:str, force:bool, proxie:dict):
         insert_or_update_entry(db_path, img_id, title, "test category", get_timestamp(), url)
         db_semaphore.release()
     else:
-        print("Download failed")
+        logger.error(f"\nDownload failed - ({url}) - status code: {r.status_code}")
     return True
 
 def image_downloader(path:str, db_path:str, force:bool, url_queue, proxie):
@@ -82,7 +89,7 @@ def image_downloader(path:str, db_path:str, force:bool, url_queue, proxie):
                 url_queue.task_done()
                 if STOP_THREADS:
                     return
-                print("Downloading too fast. Shutting down now!                               ")
+                logger.error("Downloading too fast. Shutting down now!                               ")
                 STOP_THREADS = True
                 threads_semaphore.release()
                 return
@@ -97,28 +104,28 @@ def stop_program(signum, frame, url_queue):
     global STOP_THREADS, threads, threads_semaphore, threads_remove_semaphore
     STOP_THREADS = True
     if signum != None:
-        print("Ctrl + C detected. Emptying queue")
+        logger.info("Ctrl + C detected. Emptying queue")
     else:
-        print("Internal Call for program termination")
+        logger.info("Internal Call for program termination")
 
-    print("Clearing queue: ", end="")
+    logger.debug("Clearing queue:")
     url_queue.mutex
     while not url_queue.empty():
         url_queue.get()
         url_queue.task_done()
-    print("Done")
+    logger.debug("Clearing queue: Done")
 
-    print("Clearing threads: ", end="")
-    time.sleep(2)
+    logger.debug("Clearing threads:")
+    #time.sleep(1)
     threads_remove_semaphore.acquire()
     for thread in threads:
             thread.join()
             threads.remove(thread)
             threads_semaphore.release()
     threads_remove_semaphore.release()
-    print("Done")
+    logger.debug("Clearing threads: Done")
 
-    print(f"{get_time()} Thanks for using Faproulette-Downloader")
+    logger.info("Thanks for using Faproulette-Downloader")
     sys.exit(0)
 
 
@@ -130,6 +137,8 @@ def main():
     parser.add_argument('-b', '--beginning', action='store_true', help='Start downloading from 0')
     parser.add_argument('-s', '--speed', action='store_true', help='Use an existing Database as source for existing IDs/URLs. This will speed up downloading arround >60 percent. See README.md for more informations')
     parser.add_argument('-x', '--proxie', type=str, default=None, help='Enter proxies IP/domain to circumvent 429 errors. Http Proxies only!')
+    parser.add_argument('-d', '--debug', action="store_true", help='Activate debug output')
+    
 
     args = parser.parse_args()
     param_path = args.path       
@@ -138,29 +147,29 @@ def main():
     param_beginning = args.beginning
     param_speed = args.speed
     param_proxie = args.proxie
+    
+    if args.debug:
+        logger.setLevel(logging.DEBUG)
 
     # Check if running as exe
     exe = False
-    if sys.argv[0][-4:] == ".exe":
+    if  getattr(sys, 'frozen', False):
         exe = True
-        if not check_path_exists(param_path+"\\main.exe", create=False):
-            print("Please start program in the folder where main.exe is stored")
-            return
         param_path, param_threads, param_force, param_beginning, param_speed, param_proxie = exe_helper()
 
     # Set remaining args, may modified in case running the exe
-    db_path = param_path + "\\image_data.db"
-    db_path_source = param_path + "\\image_data_source.db"
+    db_path = os.path.join(param_path,"image_data.db")
+    db_path_source = os.path.join(param_path,"image_data_source.db")
     if param_proxie != None: 
         proxie = {'http': 'http://' + param_proxie + ':80'}
     else:
         proxie = None
 
     # Startup checks
-    print(f'{get_time()} Running startup checks to ensure correct downloading:')
+    logger.info("Running startup checks to ensure correct downloading:")
     initial_checks(param_path, db_path, db_path_source, speed=param_speed, exe=exe)
-    print(f'{get_time()} Start downloading with {param_threads} threads into "{param_path}"')
-    print('\n\nExit the Program with CTRL + C - This exits safely but may needs some time to finish running threads\n\n')
+    logger.info(f'Start downloading with {param_threads} threads into "{param_path}"')
+    print('\nExit the Program with CTRL + C - This exits safely but may needs some time to finish running threads\n')
 
     # Create a queue with the image URLs
     start_id = 0
@@ -176,7 +185,18 @@ def main():
     global threads_semaphore, threads, threads_remove_semaphore
     threads_semaphore = threading.Semaphore(param_threads)
 
+    timing_rate = 0
+    ftime = time.time()
     while int(url_queue.qsize()) != 0:
+        if timing_rate == 100:
+            timing_rate = 0
+            nftime = time.time()
+            elapsed = nftime - ftime
+            elapsed = elapsed * (int(url_queue.qsize())//100)
+            logger.debug("Remaining:" + str(time.strftime("%H:%M:%S.{}".format(str(elapsed % 1)[2:])[:15], time.gmtime(elapsed))))
+            ftime = nftime
+        timing_rate += 1
+
         print(f"Remaining images: {str(url_queue.qsize())} get downloaded by {str(param_threads)}/{str(len(threads))} Threads      ", end='\r')
         threads_semaphore.acquire()
         thread = threading.Thread(target=image_downloader, args=(param_path, db_path, param_force, url_queue, proxie,))
@@ -203,7 +223,7 @@ def main():
         threads_semaphore.release()
     threads_remove_semaphore.release()
     
-    print(f"{get_time()} All threads terminated")
-    print(f"{get_time()} Thanks for using Faproulette-Downloader")
+    logger.info("All threads terminated")
+    logger.info("Thanks for using Faproulette-Downloader")
 
 main()    
