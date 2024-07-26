@@ -13,8 +13,9 @@ from logger import logger
 from helper import initial_checks, create_urls, get_timestamp, process_url, check_path_exists, exe_helper, sanitize_filename
 from database import insert_or_update_entry, check_db_entry_exists, get_max_id_from_db
 
-IMAGES = 55995
+IMAGES = 56392
 STOP_THREADS = False
+EXE = False
 
 threads = []
 
@@ -67,7 +68,7 @@ def download_image(url:list, path:str, db_path:str, force:bool, proxie:dict):
 
         # Write data to db
         db_semaphore.acquire()
-        insert_or_update_entry(db_path, img_id, title, "test category", get_timestamp(), url)
+        insert_or_update_entry(db_path, img_id, title, "unknown", get_timestamp(), url)
         db_semaphore.release()
     else:
         logger.error(f"\nDownload failed - ({url}) - status code: {r.status_code}")
@@ -125,10 +126,13 @@ def stop_program(signum, frame, url_queue):
     logger.debug("Clearing threads: Done")
 
     logger.info("Thanks for using Faproulette-Downloader")
+    if EXE:
+        input("Press Enter to exit...")
     sys.exit(0)
 
 
 def main():
+    global EXE
     parser = argparse.ArgumentParser(prog='Faproulette-Downloader', description='Download all faproulettes on faproulette.co', epilog='https://github.com/vanishedbydefa')
     parser.add_argument('-p', '--path', default=str(os.getcwd()), type=str, help='Path to store downloaded images')
     parser.add_argument('-t', '--threads', choices=range(1, 11), default=3, type=int, help='Number of threads downloading images')
@@ -154,6 +158,7 @@ def main():
     exe = False
     if  getattr(sys, 'frozen', False):
         exe = True
+        EXE = True
         param_path, param_threads, param_force, param_beginning, param_speed, param_proxie = exe_helper()
 
     # Set remaining args, may modified in case running the exe
