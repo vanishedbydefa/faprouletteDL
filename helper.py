@@ -1,55 +1,47 @@
 import os
-import logging
-import time
 import re
+import time
+from urllib.parse import urljoin
+
 import requests
-from bs4 import *
+from bs4 import BeautifulSoup
 
 from logger import logger
 from database import check_db_exists, get_all_ids_from_db
 
+
 def get_timestamp():
     return time.time()
 
-def sanitize_filename(input_string):
-    '''
-    Replace characters to get valid file
-    names. Only a few chars are allowed.
-    '''
-    pattern = re.compile(r'[^A-Za-z0-9\_\-\.]')
-    result_string = pattern.sub('', input_string)
-    return result_string
 
-def create_urls(url_from:int, url_to:int, db_source_path:str, speed=False):
-    '''
-    Create a list of lists containing the
-    image id and the roulettes url.
-    '''
-    if url_from == None:
+def sanitize_filename(input_string):
+    """Remove characters that are unsafe for downloaded filenames."""
+    pattern = re.compile(r'[^A-Za-z0-9\_\-\.]')
+    return pattern.sub('', input_string)
+
+
+def create_urls(url_from: int, url_to: int, db_source_path: str, speed=False):
+    """Create image ID and roulette URL pairs."""
+    if url_from is None:
         url_from = 0
     elif url_from <= 10:
         url_from = 0
     else:
         url_from -= 10
     if speed:
-        return [[i,"https://faproulette.co/"+str(i)] for i in get_all_ids_from_db(db_source_path)]
+        return [[i, "https://faproulette.co/" + str(i)] for i in get_all_ids_from_db(db_source_path)]
     else:
-        return [[i,"https://faproulette.co/"+str(i)] for i in range(url_from, url_to+1)]
+        return [[i, "https://faproulette.co/" + str(i)] for i in range(url_from, url_to + 1)]
 
 
-def check_path_exists(path:str, create=False):
-    '''
-    Check wether path exists or not.
-    If path do not exist but create=True,
-    create a directory.
-    '''
+def check_path_exists(path: str, create=False):
+    """Check whether a path exists and optionally create it."""
     if os.path.exists(path):
         return True
 
-    #path do not exist, try to create it
     if create:
         try:
-            os.makedirs(path)
+            os.makedirs(path, exist_ok=True)
             return True
         except OSError as e:
             logger.error(f"Failed to create directory: {path}")
@@ -57,8 +49,7 @@ def check_path_exists(path:str, create=False):
     return False
 
 
-def initial_checks(param_path:str, db_path:str, db_path_source:str, speed=False, exe=False):
-    ##check specified path to folder and create if it do not exist
+def initial_checks(param_path: str, db_path: str, db_path_source: str, speed=False, exe=False):
     if check_path_exists(param_path, create=True):
         logger.info(f'    * Folder path {param_path} is valid')
     else:
@@ -66,10 +57,9 @@ def initial_checks(param_path:str, db_path:str, db_path_source:str, speed=False,
             f"Please check the correctness of the provided path: "
             f"{param_path}.")
         if exe:
-            os.system("pause")
-        exit(1)
-    
-    ##check if the db exist and create if it do not exist
+            input("Press Enter to exit...")
+        raise SystemExit(1)
+
     check_db_exists(db_path)
     if speed:
         if not check_path_exists(db_path_source, create=False):
@@ -77,59 +67,45 @@ def initial_checks(param_path:str, db_path:str, db_path_source:str, speed=False,
                         f"Make sure to place 'image_data_source.db' here: {db_path_source}")
 
             if exe:
-                os.system("pause")
-            exit(1)
+                input("Press Enter to exit...")
+            raise SystemExit(1)
 
-def process_url(url:str, proxie:dict):
-    # content of URL
-    r = requests.get(url, headers = {'User-agent': 'faproulette-dl'}, proxies=proxie)
-    if r.status_code == 429:
+
+def process_url(url: str, proxie: dict):
+    try:
+        response = requests.get(
+            url,
+            headers={'User-agent': 'faproulette-dl'},
+            proxies=proxie,
+            timeout=(5, 30),
+        )
+    except requests.RequestException as error:
+        logger.error(f"Request failed for {url}: {error}")
+        return False, False
+
+    if response.status_code == 429:
         return 429, 429
-    # Parse HTML Code
-    soup = BeautifulSoup(r.text, 'html.parser')
-    # find all images in URL
-    images = soup.findAll('img')
-    
-    # Find title
-    title = soup.find('title')
-    if not title:
-        title = "faproulette"
-    else:
-        title = title.get_text().replace(" - Fap Roulette", "")
+    if not response.ok:
+        logger.error(f"Request failed for {url} with status code {response.status_code}")
+        return False, False
+
+    soup = BeautifulSoup(response.text, 'html.parser')
+    images = soup.find_all('img')
+    title_element = soup.find('title')
+    title = "faproulette"
+    if title_element:
+        title = title_element.get_text().replace(" - Fap Roulette", "")
         title = re.sub(r'[?|/:<>*\\]', '', title)
 
-    # checking if images is not zero
-    if len(images) != 0:
-        if len(images) == 1:
-            return False, False
-        if len(images) < 2:
-            logger.info(images)
-            return False, False
-        image = images[2]
-        try:
-            # In image tag ,searching for "data-srcset"
-            image_link = image["data-srcset"]
-        # then we will search for "data-src" in img
-        # tag and so on..
-        except:
-            try:
-                # In image tag ,searching for "data-src"
-                image_link = image["data-src"]
-            except:
-                try:
-                    # In image tag ,searching for "data-fallback-src"
-                    image_link = image["data-fallback-src"]
-                except:
-                    try:
-                        # In image tag ,searching for "src"
-                        image_link = image["src"]
-                    # if no Source URL found
-                    except:
-                        pass
+    for image in images:
+        for attribute in ("data-srcset", "data-src", "data-fallback-src", "src"):
+            image_link = image.get(attribute)
+            if image_link and image_link.startswith("https://files.faproulette.co/images/fap/"):
+                return title, urljoin(response.url, image_link)
 
-        return title, image_link
-    logger.error(f"Unknown error for {url}")
+    logger.error(f"No image source found for {url}")
     return False, False
+
 
 def exe_helper():
     while True:
@@ -144,7 +120,7 @@ def exe_helper():
             threads = input("Enter a number of threads to use for downloading [1-10]: ")
             threads = int(threads)
             if threads <= 0 or threads >10:
-                logging.error("Invalid input! Please enter a number between 1 and 10")
+                logger.error("Invalid input! Please enter a number between 1 and 10")
                 continue
             logger.info(f"Threads set to: {threads}")
             break
@@ -153,49 +129,46 @@ def exe_helper():
 
     while True:
         force = input("Do you want to force download even an image may already exist? [y/n]: ")
-        if force not in ["y", "Y", "j", "J", "yes", "Yes", "n", "N", "no", "No"]:
-            logger.error("Type 'y' to force download or 'n' to do not: ")
-            continue
-        elif force in ["y", "Y", "j", "J", "yes", "Yes"]:
+        if force.lower() in ["y", "j", "yes"]:
             force = True
             break
-        elif force in ["n", "N", "no", "No"]:
+        elif force.lower() in ["n", "no"]:
             force = False
             break
-    
+        else:             
+            logger.error("Type 'y' to force download or 'n' to do not: ")
+
     while True:
         beginning = input("Do you want to start downloading from 0? [y/n]: ")
-        if beginning not in ["y", "Y", "j", "J", "yes", "Yes", "n", "N", "no", "No"]:
-            logger.error("Type 'y' to not continue where you stoped last time or 'n' to do so: ")
-            continue
-        elif beginning in ["y", "Y", "j", "J", "yes", "Yes"]:
+        if beginning.lower() in ["y", "j", "yes"]:
             beginning = True
             break
-        elif beginning in ["n", "N", "no", "No"]:
+        elif beginning.lower() in ["n", "no"]:
             beginning = False
             break
+        else:             
+            logger.error("Type 'y' to not continue where you stoped last time or 'n' to do so: ")
 
     while True:
         speed = input("Do you want to start downloading in speed mode? [y/n]: ")
-        if speed not in ["y", "Y", "j", "J", "yes", "Yes", "n", "N", "no", "No"]:
-            logger.error("Type 'y' to download based on an existing db otherwise type 'n': ")
-            continue
-        elif speed in ["y", "Y", "j", "J", "yes", "Yes"]:
+        if speed.lower() in ["y", "j", "yes"]:
             speed = True
             break
-        elif speed in ["n", "N", "no", "No"]:
+        elif speed.lower() in ["n", "no"]:
             speed = False
             break
+        else:             
+            logger.error("Type 'y' to start downloading in speed mode or 'n' to do not: ")
 
     while True:
         proxie = input("Do you want to use a proxie? [y/n]: ")
-        if proxie not in ["y", "Y", "j", "J", "yes", "Yes", "n", "N", "no", "No"]:
-            logger.error("Type 'y' to force download or 'n' to do not: ")
-            continue
-        elif proxie in ["y", "Y", "j", "J", "yes", "Yes"]:
+        if proxie.lower() in ["y", "j", "yes"]:
             proxie = input("Input proxies IP: ")
             break
-        else:
+        elif proxie.lower() in ["n", "no"]:
             proxie = None
             break
+        else:             
+            logger.error("Type 'y' to use a proxie or 'n' to do not: ")
+
     return path, threads, force, beginning, speed, proxie

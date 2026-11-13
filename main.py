@@ -13,7 +13,7 @@ from logger import logger
 from helper import initial_checks, create_urls, get_timestamp, process_url, check_path_exists, exe_helper, sanitize_filename
 from database import insert_or_update_entry, check_db_entry_exists, get_max_id_from_db
 
-IMAGES = 56392
+IMAGES = 74085
 STOP_THREADS = False
 EXE = False
 
